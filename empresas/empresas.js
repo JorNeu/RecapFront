@@ -2,12 +2,25 @@ const API_BASE_URL = 'http://localhost:8080';
 let selectedRowId = null;
 let empresasData = [];
 
-// Function to load empresas
-function loadEmpresas() {
+
+
+// Function to load and display empresas with cantidad de controladores
+function loadAndDisplayEmpresas() {
     axios.get(`${API_BASE_URL}/empresas`)
         .then(response => {
             empresasData = response.data;
-            displayEmpresas(empresasData);
+            const controladoresPromises = empresasData.map(empresa =>
+                axios.get(`${API_BASE_URL}/empresas/${empresa.idEmpresa}/controladores`)
+            );
+
+            Promise.all(controladoresPromises)
+                .then(controladoresResponses => {
+                    controladoresResponses.forEach((res, index) => {
+                        empresasData[index].cantidadControladores = res.data;
+                    });
+                    displayEmpresas(empresasData);
+                })
+                .catch(error => console.error('Error al obtener cantidad de controladores', error));
         })
         .catch(error => console.error('Error al cargar empresas', error));
 }
@@ -24,7 +37,7 @@ function displayEmpresas(empresas) {
                 <td>${empresa.resolucion}</td>
                 <td>${empresa.socio1}</td>
                 <td>${empresa.socio2}</td>
-                <td></td>
+                <td>${empresa.cantidadControladores}</td>
             </tr>
         `;
     });
@@ -60,7 +73,7 @@ function handleFormSubmit(event) {
 
     axios.post(`${API_BASE_URL}/empresas`, { nombre, resolucion, socio1, socio2 })
         .then(response => {
-            loadEmpresas();
+            loadAndDisplayEmpresas();
             document.getElementById('empresaForm').reset();
         })
         .catch(error => console.error('Error al agregar empresa', error));
@@ -85,7 +98,7 @@ function editEmpresa() {
                         socio1,
                         socio2
                     })
-                    .then(response => loadEmpresas())
+                    .then(response => loadAndDisplayEmpresas())
                     .catch(error => console.error('Error al editar empresa', error));
                 }
             })
@@ -97,7 +110,7 @@ function editEmpresa() {
 function deleteEmpresa() {
     if (selectedRowId && confirm('¿Estás seguro de que quieres eliminar esta empresa?')) {
         axios.delete(`${API_BASE_URL}/empresas/${selectedRowId}`)
-            .then(response => loadEmpresas())
+            .then(response => loadAndDisplayEmpresas())
             .catch(error => console.error('Error al eliminar empresa', error));
     }
 }
@@ -148,4 +161,4 @@ document.getElementById('copyBtn').addEventListener('click', copyEmpresa);
 document.getElementById('toggleFormBtn').addEventListener('click', toggleStickyForm);
 
 // Initial load
-loadEmpresas();
+loadAndDisplayEmpresas();

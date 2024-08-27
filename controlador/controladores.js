@@ -1,7 +1,8 @@
 const API_BASE_URL = 'http://localhost:8080';
 let selectedRowId = null;
 let controladorData = [];
-
+let currentSortColumn = null;
+let isAscending = true;
 
 // Function to load and display controlador with cantidad de controladores
 function loadAndDisplaycontrolador() {
@@ -130,10 +131,19 @@ function copycontrolador() {
 }
 
 // Function to sort table
+
 function sortTable(column) {
+    // Si se hace clic en la misma columna, alternar entre ascendente y descendente
+    if (currentSortColumn === column) {
+        isAscending = !isAscending;
+    } else {
+        currentSortColumn = column;
+        isAscending = true;
+    }
+
     const sortedData = [...controladorData].sort((a, b) => {
-        if (a[column] < b[column]) return -1;
-        if (a[column] > b[column]) return 1;
+        if (a[column] < b[column]) return isAscending ? -1 : 1;
+        if (a[column] > b[column]) return isAscending ? 1 : -1;
         return 0;
     });
     displaycontrolador(sortedData);

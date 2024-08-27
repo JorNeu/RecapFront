@@ -31,7 +31,7 @@ th, td {
 }
 
 thead {
-    background-color: #9a5cff;
+    background-color: #ce3535;
     color: #ffffff;
 }
 
@@ -40,11 +40,11 @@ tbody tr {
 }
 
 tbody tr.selected {
-    background-color: #d3b5ff9c;
+    background-color: #ff8d8da1;
 }
 
 button {
-    background-color: #9a5cff;
+    background-color: #ce3535;
     color: white;
     border: none;
     padding: 10px 15px;
@@ -60,11 +60,11 @@ button:disabled {
 }
 
 button:hover:not(:disabled) {
-    background-color: #663fa5;
+    background-color: #833e3e;
 }
 
 button:active:not(:disabled) {
-    background-color: #4f298d;
+    background-color: #5f2f2f;
 }
 
 form {
@@ -132,20 +132,6 @@ form input {
     transition: background-color 0.3s, border-color 0.3s;
     position: relative;
     margin-right: 10px;
-}
-
-.styled-checkbox:checked {
-    background-color: #9a5cff;
-    border-color: #9a5cff;
-}
-
-.styled-checkbox:checked::after {
-    content: '✔';
-    position: absolute;
-    left: 4px;
-    top: -2px;
-    color: white;
-    font-size: 16px;
 }
 
 label {

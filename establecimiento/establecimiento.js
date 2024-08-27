@@ -1,43 +1,31 @@
 const API_BASE_URL = 'http://localhost:8080';
 let selectedRowId = null;
-let empresasData = [];
-
-
-
-// Function to load and display empresas with cantidad de controladores
-function loadAndDisplayEmpresas() {
-    axios.get(`${API_BASE_URL}/empresas`)
+let establecimientosData = [];
+let currentSortColumn = null;
+let isAscending = true;
+// Function to load and display establecimientos
+function loadAndDisplayEstablecimientos() {
+    axios.get(`${API_BASE_URL}/establecimientos`)
         .then(response => {
-            empresasData = response.data;
-            const controladoresPromises = empresasData.map(empresa =>
-                axios.get(`${API_BASE_URL}/empresas/${empresa.idEmpresa}/controladores`)
-            );
-
-            Promise.all(controladoresPromises)
-                .then(controladoresResponses => {
-                    controladoresResponses.forEach((res, index) => {
-                        empresasData[index].cantidadControladores = res.data;
-                    });
-                    displayEmpresas(empresasData);
-                })
-                .catch(error => console.error('Error al obtener cantidad de controladores', error));
+            establecimientosData = response.data;
+            displayEstablecimientos(establecimientosData);
         })
-        .catch(error => console.error('Error al cargar empresas', error));
+        .catch(error => console.error('Error loading establecimientos:', error));
 }
 
-// Function to display empresas in the table
-function displayEmpresas(empresas) {
-    const tableBody = document.getElementById('empresasTableBody');
+// Function to display establecimientos in the table
+function displayEstablecimientos(establecimientos) {
+    const tableBody = document.getElementById('establecimientosTableBody');
     tableBody.innerHTML = '';
-    empresas.forEach(empresa => {
+    establecimientos.forEach(establecimiento => {
         tableBody.innerHTML += `
-            <tr data-id="${empresa.idEmpresa}" onclick="handleRowClick(event, ${empresa.idEmpresa})">
-                <td>${empresa.idEmpresa}</td>
-                <td>${empresa.nombre}</td>
-                <td>${empresa.resolucion}</td>
-                <td>${empresa.socio1}</td>
-                <td>${empresa.socio2}</td>
-                <td>${empresa.cantidadControladores}</td>
+            <tr data-id="${establecimiento.idEstablecimiento}" onclick="handleRowClick(event, ${establecimiento.idEstablecimiento})">
+                <td>${establecimiento.idEstablecimiento}</td>
+                <td>${establecimiento.nombre}</td>
+                <td>${establecimiento.razonSocial}</td>
+                <td>${establecimiento.direccion}</td>
+                <td>${establecimiento.factorOcupacional !== undefined ? establecimiento.factorOcupacional : ''}</td>
+                <td>${establecimiento.habilitacion ? 'Sí' : 'No'}</td>
             </tr>
         `;
     });
@@ -46,13 +34,13 @@ function displayEmpresas(empresas) {
 // Function to handle row click
 function handleRowClick(event, id) {
     // Deselect previously selected row
-    document.querySelectorAll('#empresasTableBody tr').forEach(row => row.classList.remove('selected'));
-    
+    document.querySelectorAll('#establecimientosTableBody tr').forEach(row => row.classList.remove('selected'));
+
     // Select the clicked row
     const row = event.currentTarget;
     row.classList.add('selected');
     selectedRowId = id;
-    
+
     toggleActionButtons(true);
 }
 
@@ -66,99 +54,122 @@ function toggleActionButtons(enabled) {
 // Function to handle form submission
 function handleFormSubmit(event) {
     event.preventDefault();
-    const nombre = document.getElementById('nombreEmpresa').value;
-    const resolucion = document.getElementById('resolucionEmpresa').value;
-    const socio1 = document.getElementById('socio1Empresa').value;
-    const socio2 = document.getElementById('socio2Empresa').value;
 
-    axios.post(`${API_BASE_URL}/empresas`, { nombre, resolucion, socio1, socio2 })
-        .then(response => {
-            loadAndDisplayEmpresas();
-            document.getElementById('empresaForm').reset();
-        })
-        .catch(error => console.error('Error al agregar empresa', error));
+    const nombre = document.getElementById('nombreEstablecimiento').value;
+    const razonSocial = document.getElementById('razonSocialEstablecimiento').value;
+    const direccion = document.getElementById('direccionEstablecimiento').value;
+    
+    const factorOcupacional = document.getElementById('factorOcupacionalEstablecimiento').value;
+    const habilitacion = document.getElementById('habilitacionEstablecimiento').checked;
+
+    axios.post(`${API_BASE_URL}/establecimientos`, {
+        nombre,
+        razonSocial,
+        direccion,
+        factorOcupacional,
+        habilitacion
+    })
+    .then(response => {
+        loadAndDisplayEstablecimientos(); // Llamada corregida
+        document.getElementById('EstablecimientoForm').reset();
+    })
+    .catch(error => console.error('Error al agregar establecimiento', error));
 }
 
-// Function to handle edit
-function editEmpresa() {
+//handle to edit
+function editEstablecimiento() {
     if (selectedRowId) {
-        axios.get(`${API_BASE_URL}/empresas/${selectedRowId}`)
+        axios.get(`${API_BASE_URL}/establecimientos/${selectedRowId}`)
             .then(response => {
-                const empresa = response.data;
-                const nombre = prompt('Nuevo nombre de la empresa:', empresa.nombre);
-                const resolucion = prompt('Nueva resolución:', empresa.resolucion);
-                const socio1 = prompt('Nuevo socio 1:', empresa.socio1);
-                const socio2 = prompt('Nuevo socio 2:', empresa.socio2);
+                const establecimiento = response.data;
 
-                if (nombre && resolucion && socio1 && socio2) {
-                    axios.put(`${API_BASE_URL}/empresas/${selectedRowId}`, {
-                        idEmpresa: selectedRowId,
+                const nombre = prompt('Nuevo nombre del establecimiento:', establecimiento.nombre);
+                const razonSocial = prompt('Nueva razón social:', establecimiento.razonSocial);
+                const direccion = prompt('Nueva dirección:', establecimiento.direccion);
+                let factorOcupacional = prompt('Nuevo factor ocupacional:', establecimiento.factorOcupacional);
+                factorOcupacional = factorOcupacional ? parseInt(factorOcupacional, 10) : establecimiento.factorOcupacional;
+                const habilitacion = confirm('¿Habilitación? (Aceptar = Sí, Cancelar = No)');
+                if (nombre && razonSocial && direccion && !isNaN(factorOcupacional)) {
+                    axios.put(`${API_BASE_URL}/establecimientos/${selectedRowId}`, {
+                        idEstablecimiento: selectedRowId,
                         nombre,
-                        resolucion,
-                        socio1,
-                        socio2
+                        razonSocial,
+                        direccion,
+                        habilitacion,
+                        factorOcupacional
                     })
-                    .then(response => loadAndDisplayEmpresas())
-                    .catch(error => console.error('Error al editar empresa', error));
+                    .then(response => loadAndDisplayEstablecimientos())
+                    .catch(error => console.error('Error al editar establecimiento', error));
+                } else {
+                    console.error('Todos los campos deben ser válidos.');
                 }
             })
-            .catch(error => console.error('Error al obtener datos de la empresa', error));
+            .catch(error => console.error('Error al obtener datos del establecimiento', error));
     }
 }
-
 // Function to handle delete
-function deleteEmpresa() {
-    if (selectedRowId && confirm('¿Estás seguro de que quieres eliminar esta empresa?')) {
-        axios.delete(`${API_BASE_URL}/empresas/${selectedRowId}`)
-            .then(response => loadAndDisplayEmpresas())
-            .catch(error => console.error('Error al eliminar empresa', error));
+function deleteEstablecimiento() {
+    if (selectedRowId && confirm('¿Estás seguro de que quieres eliminar este establecimiento?')) {
+        axios.delete(`${API_BASE_URL}/establecimientos/${selectedRowId}`)
+            .then(response => loadAndDisplayEstablecimientos())
+            .catch(error => console.error('Error al eliminar establecimiento', error));
     }
 }
 
 // Function to handle copy
-function copyEmpresa() {
+function copyEstablecimiento() {
     if (selectedRowId) {
-        axios.get(`${API_BASE_URL}/empresas/${selectedRowId}`)
+        axios.get(`${API_BASE_URL}/establecimientos/${selectedRowId}`)
             .then(response => {
-                const empresa = response.data;
-                const copyText = `ID: ${empresa.idEmpresa}\nNombre: ${empresa.nombre}\nResolución: ${empresa.resolucion}\nSocio 1: ${empresa.socio1}\nSocio 2: ${empresa.socio2}`;
+                const establecimiento = response.data;
+                const copyText = `ID: ${establecimiento.idEstablecimiento}\nNombre: ${establecimiento.nombre}\nRazón Social: ${establecimiento.razonSocial}\nDirección: ${establecimiento.direccion}\nHabilitación: ${establecimiento.habilitacion}\nFactor Ocupacional: ${establecimiento.factOcupacional}`;
                 navigator.clipboard.writeText(copyText)
-                    .then(() => alert('Empresa copiada al portapapeles'))
-                    .catch(error => console.error('Error al copiar empresa', error));
+                    .then(() => alert('Establecimiento copiado al portapapeles'))
+                    .catch(err => console.error('Error al copiar establecimiento', err));
             })
-            .catch(error => console.error('Error al obtener datos de la empresa', error));
+            .catch(error => console.error('Error al obtener datos del establecimiento', error));
     }
 }
 
-// Function to sort table
-function sortTable(column) {
-    const sortedData = [...empresasData].sort((a, b) => {
-        if (a[column] < b[column]) return -1;
-        if (a[column] > b[column]) return 1;
-        return 0;
-    });
-    displayEmpresas(sortedData);
-}
-
-// Function to toggle sticky form
-function toggleStickyForm() {
-    const form = document.getElementById('empresaForm');
-    const header = document.getElementById('addEmpresaHeader');
+// Function to handle form toggling
+function toggleFormVisibility() {
+    const form = document.getElementById('EstablecimientoForm');
+    const header = document.getElementById('addEstablecimientoHeader');
     if (form.classList.contains('sticky')) {
         form.classList.remove('sticky');
-        header.classList.remove('sticky');
+        header.innerHTML = 'Agregar Establecimiento';
     } else {
         form.classList.add('sticky');
-        header.classList.add('sticky');
+        header.innerHTML = 'Agregar Establecimiento (Sticky)';
     }
 }
 
-// Event listeners
-document.getElementById('empresaForm').addEventListener('submit', handleFormSubmit);
-document.getElementById('editBtn').addEventListener('click', editEmpresa);
-document.getElementById('deleteBtn').addEventListener('click', deleteEmpresa);
-document.getElementById('copyBtn').addEventListener('click', copyEmpresa);
-document.getElementById('toggleFormBtn').addEventListener('click', toggleStickyForm);
+// Function to handle sorting
 
-// Initial load
-loadAndDisplayEmpresas();
+function sortTable(column) {
+    // Si se hace clic en la misma columna, alternar entre ascendente y descendente
+    if (currentSortColumn === column) {
+        isAscending = !isAscending;
+    } else {
+        currentSortColumn = column;
+        isAscending = true;
+    }
+
+    const sortedData = [...establecimientosData].sort((a, b) => {
+        if (a[column] < b[column]) return isAscending ? -1 : 1;
+        if (a[column] > b[column]) return isAscending ? 1 : -1;
+        return 0;
+    });
+    displayEstablecimientos(sortedData);
+}
+
+
+// Event listeners
+document.getElementById('EstablecimientoForm').addEventListener('submit', handleFormSubmit);
+document.getElementById('editBtn').addEventListener('click', editEstablecimiento);
+document.getElementById('deleteBtn').addEventListener('click', deleteEstablecimiento);
+document.getElementById('copyBtn').addEventListener('click', copyEstablecimiento);
+document.getElementById('toggleFormBtn').addEventListener('click', toggleFormVisibility);
+
+// Load establecimientos on page load
+document.addEventListener('DOMContentLoaded', loadAndDisplayEstablecimientos);
